@@ -24,6 +24,48 @@ static struct cdev *fib_cdev;
 static struct class *fib_class;
 static DEFINE_MUTEX(fib_mutex);
 
+/**
+ * The fast doubling version of counting Fibonnaci numbers (iterative)
+ */
+static inline uint64_t fast_doubling_i(uint64_t num)
+{
+    if (num <= 2)
+        return !!num;
+
+    uint8_t leading = 63 - __builtin_clzll(num); /* where k > 0 */
+    uint64_t n0 = 0, n1 = 1;
+    for (uint64_t i = 1UL << leading; i; i >>= 1) {
+        uint64_t n2k0 = n0 * ((n1 << 1) - n0);
+        uint64_t n2k1 = n0 * n0 + n1 * n1;
+
+        if (i & num) {
+            n0 = n2k1;
+            n1 = n2k0 + n2k1;
+        } else {
+            n0 = n2k0;
+            n1 = n2k1;
+        }
+    }
+
+    return n0;
+}
+
+/**
+ * The fast doubling version of counting Fibonnaci numbers (recursive)
+ */
+static inline uint64_t fast_doubling_r(uint64_t num)
+{
+    if (num <= 2)
+        return !!num;
+
+    uint64_t n0 = fast_doubling_r(num >> 1);
+    uint64_t n1 = fast_doubling_r((num >> 1) + 1);
+
+    if (num & 1)
+        return n0 * n0 + n1 * n1;
+    return n0 * ((n1 << 1) - n0);
+}
+
 static long long fib_sequence(long long k)
 {
     /* FIXME: C99 variable-length array (VLA) is not allowed in Linux kernel. */
@@ -60,7 +102,9 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fib_sequence(*offset);
+    return (ssize_t) fast_doubling(*offset);
+    // return (ssize_t) fast_doubling_r(*offset);
+    // return (ssize_t) fib_sequence(*offset);
 }
 
 /* write operation is skipped */
