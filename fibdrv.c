@@ -102,7 +102,7 @@ static ssize_t fib_read(struct file *file,
                         size_t size,
                         loff_t *offset)
 {
-    return (ssize_t) fast_doubling(*offset);
+    return (ssize_t) fast_doubling_i(*offset);
     // return (ssize_t) fast_doubling_r(*offset);
     // return (ssize_t) fib_sequence(*offset);
 }
